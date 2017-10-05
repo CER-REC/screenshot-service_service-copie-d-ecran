@@ -1,3 +1,11 @@
+
+if (process.env.NODE_ENV === 'development') {
+  require('dotenv').config({path: '.env.dev'})
+}
+else if (process.env.NODE_ENV === 'production') {
+  require('dotenv').config({path: '.env.prod'})
+}
+
 const Chromeless = require('chromeless').Chromeless
 const Express = require('express')
 const Promise = require('bluebird')
@@ -13,22 +21,29 @@ const app = Express()
 
 app.get('/screenshot', (req, res) => {
 
-  const requestUrl = decodeURIComponent(req.query.pageUrl)
-
   const chromeless = new Chromeless()
 
-  // TODO: more work to validate the url here...
-  // TODO: definitely will want to build a proper URL object, verify is well 
-  // formed, verify the destination, etc... 
-  // TODO: also, need to parameterize port or something for dev/prod
+  const reqWidth = parseInt(req.query.width)
+  const reqHeight = parseInt(req.query.height)
+  const width = isNaN(reqWidth) ? 1000 : reqWidth
+  const height = isNaN(reqHeight) ? 600 : reqHeight
 
-  const screenshotPromise = chromeless
-    .goto(`http://localhost:3001${requestUrl}`)
-    .screenshot()
-  .catch( error => {
-    res.send('failure!')
+  const urlPromise = new Promise( (resolve, reject) => {
+    const requestUrl = decodeURIComponent(req.query.pageUrl)
+    const url = Url.parse(`${process.env.REQUEST_ENDPOINT}${requestUrl}`)
+
+    resolve(url)
   })
 
+  const screenshotPromise = urlPromise.then( url => {
+    return chromeless
+      .setViewport({width: width, height: height, scale: 1})
+      .goto(url.href)
+      .screenshot()
+    .catch( error => {
+      res.send('failure!')
+    })
+  })
 
   const responsePromise = screenshotPromise.then( screenshotFilePath => {
     return readFile(screenshotFilePath)
@@ -38,7 +53,7 @@ app.get('/screenshot', (req, res) => {
     res.setHeader('content-type', 'image/png')
     // content-disposition=attachment prompts the browser to start a file 
     // download rather than navigate to the image.
-    res.setHeader('content-disposition', 'attachment')
+    res.setHeader('content-disposition', 'attachment; filename=image.png')
 
     res.write(screenshotBuffer)
     res.end()
@@ -46,7 +61,7 @@ app.get('/screenshot', (req, res) => {
   })
   .catch( error => {
     // TODO: more ...  
-    res.send('failure!')
+    res.status(500).send()
   })
 
   Promise.join(screenshotPromise, responsePromise, screenshotFilePath => {
@@ -54,11 +69,10 @@ app.get('/screenshot', (req, res) => {
   })
   .catch( error => {
     // TODO: more ...  
-    // res.send('failure!')
   })
 
 
 })
 
-
-app.listen(3002)
+// IIS-Node passes in a named pipe to listen to in process.env.PORT
+app.listen(process.env.PORT || process.env.PORT_NUMBER)

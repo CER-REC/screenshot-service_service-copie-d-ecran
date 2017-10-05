@@ -1,6 +1,12 @@
 # Screenshot Service for NEB Data Visualizations
 
 
+## Dependencies
+
+- Node + NPM
+- IISNode
+- Chrome > v60
+
 ## The Approach
 
 Previously, for the Energy Futures visualization, we ran a node server with JSDOM and adapted the entire visualization to function on both server and browser. There were many issues
@@ -30,6 +36,9 @@ Some important notes:
 Proof of concept works like:
 
 curl localhost:3002/screenshot?pageUrl=incident-visualization%2Fscreenshot%3Fcolumns%3Dprovince%2CincidentTypes%2Cstatus%26incidentTypes%3Drelease%2CenvironmentalEffects%2Cfatality%2Cfire%2CseriousInjury%2Cobdl%2Cexplosion%26province%3DNS%2CPE%2CNB%2CNL%2CMB%2CNT%2CON%2CYT%2CAB%2CNU%2CSK%2CBC%2CQC%26status%3Dclosed%2Csubmitted%2CinitiallySubmitted%26language%3Dfr
+
+
+
 
 
 
