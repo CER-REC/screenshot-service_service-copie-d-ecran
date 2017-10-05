@@ -25,8 +25,8 @@ app.get('/screenshot', (req, res) => {
 
   const reqWidth = parseInt(req.query.width)
   const reqHeight = parseInt(req.query.height)
-  const width = isNaN(reqWidth) ? 1000 : reqWidth
-  const height = isNaN(reqHeight) ? 600 : reqHeight
+  const width = isNaN(reqWidth) ? 1000 : (reqWidth + 20)
+  const height = isNaN(reqHeight) ? 600 : (reqHeight + 20)
 
   const urlPromise = new Promise( (resolve, reject) => {
     const requestUrl = decodeURIComponent(req.query.pageUrl)
