@@ -11,7 +11,6 @@ const Chromeless = require('chromeless').Chromeless
 const Express = require('express')
 const Promise = require('bluebird')
 
-const Url = require('url')
 const Path = require('path')
 const Fs = require('fs')
 
@@ -29,22 +28,33 @@ app.get('/screenshot', (req, res) => {
   const width = isNaN(reqWidth) ? 1000 : (reqWidth + 20)
   const height = isNaN(reqHeight) ? 600 : (reqHeight + 20)
 
-  const urlPromise = new Promise( (resolve, reject) => {
-    const requestUrl = decodeURIComponent(req.query.pageUrl)
-    const url = Url.parse(`${process.env.REQUEST_ENDPOINT}${requestUrl}`)
 
-    resolve(url)
+
+  const requestUrl = decodeURIComponent(req.query.pageUrl)
+
+  let url
+  if (process.env.USE_HTTP_BASIC_AUTH) {
+
+    // We want a URL like: http://user:pass@host.com/pathname/
+
+    url = `${process.env.REQUEST_PROTOCOL}${process.env.REQUEST_USERNAME}:${process.env.REQUEST_PASSWORD}@${process.env.REQUEST_HOST}${requestUrl}`
+  }
+  else {
+
+    // We want a URL like: http://host.com/pathname/
+
+    url = `${process.env.REQUEST_PROTOCOL}${process.env.REQUEST_HOST}${requestUrl}`
+  }
+
+
+  const screenshotPromise = chromeless
+    .setViewport({width: width, height: height, scale: 1})
+    .goto(url)
+    .screenshot()
+  .catch( error => {
+    res.status(500).send('failure!')
   })
 
-  const screenshotPromise = urlPromise.then( url => {
-    return chromeless
-      .setViewport({width: width, height: height, scale: 1})
-      .goto(url.href)
-      .screenshot()
-    .catch( error => {
-      res.send('failure!')
-    })
-  })
 
   const responsePromise = screenshotPromise.then( screenshotFilePath => {
     return readFile(screenshotFilePath)
