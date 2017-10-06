@@ -25,6 +25,10 @@ app.get('/screenshot', (req, res) => {
 
   const reqWidth = parseInt(req.query.width)
   const reqHeight = parseInt(req.query.height)
+  // + 20, because there's still enough overlap to trigger scrollbars on chrome
+  // in windows. 
+  // TODO: add overflow: hidden to screenshot endpoints to better maintain
+  // dimensions
   const width = isNaN(reqWidth) ? 1000 : (reqWidth + 20)
   const height = isNaN(reqHeight) ? 600 : (reqHeight + 20)
 

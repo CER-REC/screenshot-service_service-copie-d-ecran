@@ -3,13 +3,21 @@
 
 ## Dependencies
 
-- Node + NPM
+- Node (> 6.10) + NPM
 - IISNode
 - Chrome > v60
 
+## Installing and Running
+
+- Check out the repository
+- `npm install`
+- `npm run start-dev-unix` (if on OSX)
+
+The application depends on having some environment variables properly set. At this writing, the Incident Visualization in dev mode is configured to use this service if it is running on the local system, also in dev mode.
+
 ## The Approach
 
-Previously, for the Energy Futures visualization, we ran a node server with JSDOM and adapted the entire visualization to function on both server and browser. There were many issues
+Previously, for the Energy Futures visualization, we ran a node server with JSDOM and adapted the entire visualization to function on both server and browser. There were many issues:
 
 - We needed to integrate with IIS. This meant using IIS Node, which works fine, but which added complexity.
 - We had to check the entire Node app into TFS, and copy the files on deploy. For the node server, this was tens of thousands of files
@@ -28,10 +36,16 @@ The workflow will be like this:
 
 Some important notes:
 
-- The production server is firewalled off from the internet: any request made by Chrome to any server but our own will block the request until it times out. That means: no analytics, no foreign fonts on the page!
+- The production and test servers are firewalled off from the internet: any request made by Chrome to any server but our own will block the request until it times out. That means: no analytics, no foreign fonts, no WET template stylesheets on the page!
 - The firewall is actually useful in this case though, as it will prevent the end from being used as an open-ended screenshot service by just anyone who discovers it. The service must run on the same app server as the visualizations do.
 - Only one kind of request has been opened up for us in the firewall: requests to Bitly for short URLs
-- We're not going to follow the usual app deployment process this time, it's just too painful to store node apps with all of their dependencies in TFS, even a tiny one like this. I'm making an exception for this service: we'll deploy it as a package and manage it with nodemon
+
+
+Ultimately, for ease of deployment, I have checked this node app into TFS. Zipping up the entire project to deploy it has its own problems, especially around path length.
+
+Todo:
+-when Chromeless and its dependency CUID are updated to no longer depend on core-js (which can't be checked into TFS), change the Chromeless dependency in package.json away from my forked repo.
+
 
 Proof of concept works like:
 
