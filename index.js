@@ -51,10 +51,6 @@ app.get('/screenshot', (req, res) => {
     .setViewport({width: width, height: height, scale: 1})
     .goto(url)
     .screenshot()
-  .catch( error => {
-    res.status(500).send('failure!')
-  })
-
 
   const responsePromise = screenshotPromise.then( screenshotFilePath => {
     return readFile(screenshotFilePath)
@@ -62,6 +58,7 @@ app.get('/screenshot', (req, res) => {
   .then( screenshotBuffer => {
 
     res.setHeader('content-type', 'image/png')
+    
     // content-disposition=attachment prompts the browser to start a file 
     // download rather than navigate to the image.
     res.setHeader('content-disposition', 'attachment; filename=image.png')
@@ -71,7 +68,7 @@ app.get('/screenshot', (req, res) => {
 
   })
   .catch( error => {
-    // TODO: more ...  
+    console.error(error)
     res.status(500).send()
   })
 
@@ -79,7 +76,7 @@ app.get('/screenshot', (req, res) => {
     return unlink(screenshotFilePath)
   })
   .catch( error => {
-    // TODO: more ...  
+    console.error(error)
   })
 
 
