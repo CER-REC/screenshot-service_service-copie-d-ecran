@@ -1,47 +1,92 @@
+
+if (process.env.NODE_ENV === 'development') {
+  require('dotenv').config({path: '.env.dev'})
+}
+else if (process.env.NODE_ENV === 'production') {
+  require('dotenv').config({path: '.env.prod'})
+}
+
+
 const Chromeless = require('chromeless').Chromeless
 const Express = require('express')
 const Promise = require('bluebird')
-const BodyParser = require('body-parser')
 
+const Path = require('path')
+const Fs = require('fs')
+
+const unlink = Promise.promisify(Fs.unlink)
+const readFile = Promise.promisify(Fs.readFile)
 
 const app = Express()
 
-app.use(BodyParser.json({}))
-
-app.post('/screenshot', (req, res) => {
+app.get('/screenshot', (req, res) => {
 
   const chromeless = new Chromeless()
 
-  // TODO: more work to validate the url here...
+  const reqWidth = parseInt(req.query.width)
+  const reqHeight = parseInt(req.query.height)
+  // + 20, because there's still enough overlap to trigger scrollbars on chrome
+  // in windows. 
+  // TODO: add overflow: hidden to screenshot endpoints to better maintain
+  // dimensions
+  const width = isNaN(reqWidth) ? 1000 : (reqWidth + 20)
+  const height = isNaN(reqHeight) ? 600 : (reqHeight + 20)
 
-  chromeless
-    .goto(req.body.url)
+
+
+  const requestUrl = decodeURIComponent(req.query.pageUrl)
+
+  let url
+  if (process.env.USE_HTTP_BASIC_AUTH) {
+
+    // We want a URL like: http://user:pass@host.com/pathname/
+
+    url = `${process.env.REQUEST_PROTOCOL}${process.env.REQUEST_USERNAME}:${process.env.REQUEST_PASSWORD}@${process.env.REQUEST_HOST}${requestUrl}`
+  }
+  else {
+
+    // We want a URL like: http://host.com/pathname/
+
+    url = `${process.env.REQUEST_PROTOCOL}${process.env.REQUEST_HOST}${requestUrl}`
+  }
+
+
+  const screenshotPromise = chromeless
+    .setViewport({width: width, height: height, scale: 1})
+    .goto(url)
     .screenshot()
-  .then( screenshotUrl => {
-    res.send(screenshotUrl)
+
+  const responsePromise = screenshotPromise.then( screenshotFilePath => {
+    return readFile(screenshotFilePath)
+  })
+  .then( screenshotBuffer => {
+
+    res.setHeader('content-type', 'image/png')
+    
+    // content-disposition=attachment prompts the browser to start a file 
+    // download rather than navigate to the image.
+    res.setHeader('content-disposition', 'attachment; filename=image.png')
+
+    res.write(screenshotBuffer)
+    res.end()
+
   })
   .catch( error => {
-    // TODO: more ...  
-    res.send('failure!')
+    console.error(error)
+    res.status(500).send()
   })
 
+  Promise.join(screenshotPromise, responsePromise, screenshotFilePath => {
+    chromeless.end()
+    return unlink(screenshotFilePath)
+  })
+  .catch( error => {
+    chromeless.end()
+    console.error(error)
+  })
 
-  // console.log(screenshot) // prints local file path or S3 url
-
-  // await chromeless.end()
-
-  // res.send(screenshot)
-
-  //res.send('ok')
 
 })
 
-
-app.listen(3002)
-
-
-
-//async function run() {
-//}
-
-// run().catch(console.error.bind(console))
+// IIS-Node passes in a named pipe to listen to in process.env.PORT
+app.listen(process.env.PORT || process.env.PORT_NUMBER)
