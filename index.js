@@ -77,9 +77,11 @@ app.get('/screenshot', (req, res) => {
   })
 
   Promise.join(screenshotPromise, responsePromise, screenshotFilePath => {
+    chromeless.end()
     return unlink(screenshotFilePath)
   })
   .catch( error => {
+    chromeless.end()
     console.error(error)
   })
 
