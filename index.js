@@ -54,6 +54,7 @@ app.get('/screenshot', (req, res) => {
   const screenshotPromise = chromeless
     .setViewport({width: width, height: height, scale: 1})
     .goto(url)
+    .wait(1000)
     .screenshot()
 
   const responsePromise = screenshotPromise.then( screenshotFilePath => {
